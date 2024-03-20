@@ -1,3 +1,4 @@
+import ast
 import math
 import os.path
 import random
@@ -11,6 +12,13 @@ from transformers import DataCollatorWithPadding, PreTrainedTokenizer
 from .arguments import DataArguments
 
 
+def convert_str_to_list(example):
+    # 对于字段 'pos'，使用 ast.literal_eval 将字符串形式的列表转换为实际的列表
+    if example['pos']:
+        example['pos'] = ast.literal_eval(example['pos'])
+    return example
+
+
 class TrainDatasetForEmbedding(Dataset):
     def __init__(
             self,
@@ -20,7 +28,7 @@ class TrainDatasetForEmbedding(Dataset):
         if os.path.isdir(args.train_data):
             train_datasets = []
             for file in os.listdir(args.train_data):
-                temp_dataset = datasets.load_dataset('json', data_files=os.path.join(args.train_data, file),
+                temp_dataset = datasets.load_dataset(args.file_type, data_files=os.path.join(args.train_data, file),
                                                      split='train')
                 if len(temp_dataset) > args.max_example_num_per_dataset:
                     temp_dataset = temp_dataset.select(
@@ -28,8 +36,10 @@ class TrainDatasetForEmbedding(Dataset):
                 train_datasets.append(temp_dataset)
             self.dataset = datasets.concatenate_datasets(train_datasets)
         else:
-            self.dataset = datasets.load_dataset('json', data_files=args.train_data, split='train')
+            self.dataset = datasets.load_dataset(
+                args.file_type, data_files=args.train_data, split='train')
 
+        self.dataset = self.dataset.map(convert_str_to_list)
         self.tokenizer = tokenizer
         self.args = args
         self.total_len = len(self.dataset)
@@ -49,14 +59,18 @@ class TrainDatasetForEmbedding(Dataset):
         passages.append(pos)
 
         if len(self.dataset[item]['neg']) < self.args.train_group_size - 1:
-            num = math.ceil((self.args.train_group_size - 1) / len(self.dataset[item]['neg']))
-            negs = random.sample(self.dataset[item]['neg'] * num, self.args.train_group_size - 1)
+            num = math.ceil((self.args.train_group_size - 1) /
+                            len(self.dataset[item]['neg']))
+            negs = random.sample(
+                self.dataset[item]['neg'] * num, self.args.train_group_size - 1)
         else:
-            negs = random.sample(self.dataset[item]['neg'], self.args.train_group_size - 1)
+            negs = random.sample(
+                self.dataset[item]['neg'], self.args.train_group_size - 1)
         passages.extend(negs)
 
         if self.args.passage_instruction_for_retrieval is not None:
-            passages = [self.args.passage_instruction_for_retrieval+p for p in passages]
+            passages = [
+                self.args.passage_instruction_for_retrieval+p for p in passages]
         return query, passages
 
 

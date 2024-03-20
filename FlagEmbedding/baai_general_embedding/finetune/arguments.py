@@ -12,7 +12,8 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+        metadata={
+            "help": "Path to pretrained model or model identifier from huggingface.co/models"}
     )
     config_name: Optional[str] = field(
         default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
@@ -23,7 +24,6 @@ class ModelArguments:
     cache_dir: Optional[str] = field(
         default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3"}
     )
-
 
 
 @dataclass
@@ -53,22 +53,32 @@ class DataArguments:
         default=100000000, metadata={"help": "the max number of examples for each dataset"}
     )
 
-    query_instruction_for_retrieval: str= field(
+    query_instruction_for_retrieval: str = field(
         default=None, metadata={"help": "instruction for query"}
     )
     passage_instruction_for_retrieval: str = field(
         default=None, metadata={"help": "instruction for passage"}
     )
 
+    file_type: str = field(
+        default='json', metadata={"help": "the type of file, should be json or csv"}
+    )
+
     def __post_init__(self):
         if not os.path.exists(self.train_data):
-            raise FileNotFoundError(f"cannot find file: {self.train_data}, please set a true path")
+            raise FileNotFoundError(
+                f"cannot find file: {self.train_data}, please set a true path")
+
 
 @dataclass
 class RetrieverTrainingArguments(TrainingArguments):
-    negatives_cross_device: bool = field(default=False, metadata={"help": "share negatives across devices"})
+    negatives_cross_device: bool = field(
+        default=False, metadata={"help": "share negatives across devices"})
     temperature: Optional[float] = field(default=0.02)
-    fix_position_embedding: bool = field(default=False, metadata={"help": "Freeze the parameters of position embeddings"})
-    sentence_pooling_method: str = field(default='cls', metadata={"help": "the pooling method, should be cls or mean"})
+    fix_position_embedding: bool = field(default=False, metadata={
+                                         "help": "Freeze the parameters of position embeddings"})
+    sentence_pooling_method: str = field(
+        default='cls', metadata={"help": "the pooling method, should be cls or mean"})
     normlized: bool = field(default=True)
-    use_inbatch_neg: bool = field(default=True, metadata={"help": "use passages in the same batch as negatives"})
+    use_inbatch_neg: bool = field(default=True, metadata={
+                                  "help": "use passages in the same batch as negatives"})
